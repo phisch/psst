@@ -12,12 +12,12 @@ pub enum Response {
 
 fn percent_encode(data: &str) -> String {
     let mut encoded = String::with_capacity(data.len());
-    for byte in data.bytes() {
-        match byte {
-            b'%' => encoded.push_str("%25"),
-            b'\r' => encoded.push_str("%0D"),
-            b'\n' => encoded.push_str("%0A"),
-            _ => encoded.push(byte as char),
+    for ch in data.chars() {
+        match ch {
+            '%' => encoded.push_str("%25"),
+            '\r' => encoded.push_str("%0D"),
+            '\n' => encoded.push_str("%0A"),
+            _ => encoded.push(ch),
         }
     }
     encoded
@@ -60,5 +60,10 @@ mod tests {
             Response::Data("100% pa\r\nss".into()).to_string(),
             "D 100%25 pa%0D%0Ass"
         );
+    }
+
+    #[test]
+    fn passes_non_ascii_data_through_unchanged() {
+        assert_eq!(Response::Data("café “π”".into()).to_string(), "D café “π”");
     }
 }

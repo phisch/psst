@@ -1,0 +1,13 @@
+[package]
+name = "pinentry"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "hush-pinentry"
+path = "src/main.rs"
+
+[dependencies]
+dialog = { path = "../dialog" }
+hardening = { path = "../hardening" }
+zeroize = "1"

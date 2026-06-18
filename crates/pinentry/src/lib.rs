@@ -1,5 +1,7 @@
 use std::io::{self, BufRead, Write};
 
+use zeroize::Zeroizing;
+
 use client_request::ClientRequest;
 use error::AssuanError;
 use option::PinentryOption;
@@ -39,9 +41,9 @@ pub struct Settings {
     pub lc_messages: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Eq)]
 pub enum PinOutcome {
-    Entered(String),
+    /// The entered passphrase, held in a buffer that is wiped on drop.
+    Entered(Zeroizing<String>),
     Cancelled,
 }
 
@@ -208,7 +210,9 @@ where
                     responses.push(Response::Status("PIN_REPEATED".into()));
                 }
                 if !pin.is_empty() {
-                    responses.push(Response::Data(pin));
+                    // The Zeroizing buffer is wiped when `pin` drops at the end
+                    // of this arm; the wire copy below is necessarily plaintext.
+                    responses.push(Response::Data(pin.as_str().to_owned()));
                 }
                 responses.push(Response::Ok(None));
                 responses
@@ -277,7 +281,7 @@ mod tests {
             self.seen = Some(settings.clone());
             self.pin_outcome
                 .take()
-                .unwrap_or(PinOutcome::Entered(String::new()))
+                .unwrap_or(PinOutcome::Entered(Zeroizing::new(String::new())))
         }
 
         fn confirm(&mut self, settings: &Settings, _one_button: bool) -> ConfirmOutcome {
@@ -339,7 +343,7 @@ mod tests {
     #[test]
     fn getpin_returns_data_then_ok() {
         let frontend = MockFrontend {
-            pin_outcome: Some(PinOutcome::Entered("hunter2".into())),
+            pin_outcome: Some(PinOutcome::Entered(Zeroizing::new("hunter2".into()))),
             ..Default::default()
         };
         let (lines, _) = run_with(frontend, &["GETPIN", "BYE"]);
@@ -350,7 +354,7 @@ mod tests {
     #[test]
     fn getpin_with_empty_passphrase_returns_only_ok() {
         let frontend = MockFrontend {
-            pin_outcome: Some(PinOutcome::Entered(String::new())),
+            pin_outcome: Some(PinOutcome::Entered(Zeroizing::new(String::new()))),
             ..Default::default()
         };
         let (lines, _) = run_with(frontend, &["GETPIN", "BYE"]);
@@ -363,7 +367,7 @@ mod tests {
     #[test]
     fn getpin_emits_pin_repeated_status_when_repeat_is_set() {
         let frontend = MockFrontend {
-            pin_outcome: Some(PinOutcome::Entered("secret".into())),
+            pin_outcome: Some(PinOutcome::Entered(Zeroizing::new("secret".into()))),
             ..Default::default()
         };
         let (lines, _) = run_with(frontend, &["SETREPEAT Repeat:", "GETPIN", "BYE"]);
@@ -418,7 +422,7 @@ mod tests {
     #[test]
     fn seterror_is_cleared_after_a_dialog() {
         let frontend = MockFrontend {
-            pin_outcome: Some(PinOutcome::Entered("x".into())),
+            pin_outcome: Some(PinOutcome::Entered(Zeroizing::new("x".into()))),
             ..Default::default()
         };
         let (_, pinentry) = run_with(frontend, &["SETERROR oops", "GETPIN"]);
