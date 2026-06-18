@@ -1,22 +1,18 @@
 use crate::option::PinentryOption;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ClientRequest {
     Bye,
     Reset,
     End,
     Help,
     Quit,
-    Option(PinentryOption),
     Cancel,
-    Auth,
     Nop,
+    Auth,
+    Option(PinentryOption),
 
-    GetPin,
-    Confirm,
-    Message,
-
-    SetTimeout(i32),
+    SetTimeout(u32),
     SetDescription(String),
     SetPrompt(String),
     SetTitle(String),
@@ -24,82 +20,100 @@ pub enum ClientRequest {
     SetCancel(String),
     SetNotOk(String),
     SetError(String),
-    SetRepeat,
-    SetQualityBar,
+    SetRepeat(String),
+    SetRepeatError(String),
+    SetQualityBar(String),
     SetQualityBarTooltip(String),
-    SetGenPin,
-    SetGenPinTooltip(String),
+    SetGenpin(String),
+    SetGenpinTooltip(String),
     SetKeyInfo(String),
+
+    GetPin,
+    Confirm { one_button: bool },
+    Message,
+    GetInfo(String),
+    ClearPassphrase(String),
 }
 
 impl ClientRequest {
-    pub fn parse(input: &str) -> Option<ClientRequest> {
-        let parts: Vec<&str> = input.split_whitespace().collect();
-
-        match parts[0] {
-            "BYE" => Some(ClientRequest::Bye),
-            "RESET" => Some(ClientRequest::Reset),
-            "END" => Some(ClientRequest::End),
-            "HELP" => Some(ClientRequest::Help),
-            "QUIT" => Some(ClientRequest::Quit),
-            "CANCEL" => Some(ClientRequest::Cancel),
-            "AUTH" => Some(ClientRequest::Auth),
-            "NOP" => Some(ClientRequest::Nop),
-            "OPTION" => Some(ClientRequest::Option(PinentryOption::parse(
-                parts.get(1).unwrap_or(&""),
-            ))),
-            "GETPIN" => Some(ClientRequest::GetPin),
-            "CONFIRM" => Some(ClientRequest::Confirm),
-            "MESSAGE" => Some(ClientRequest::Message),
-            "SETTIMEOUT" => {
-                let timeout = parts.get(1).unwrap_or(&"0").parse().unwrap_or(0);
-                Some(ClientRequest::SetTimeout(timeout))
-            }
-            "SETDESC" => {
-                let desc = parts[1..].join(" ");
-                Some(ClientRequest::SetDescription(desc))
-            }
-            "SETPROMPT" => {
-                let prompt = parts[1..].join(" ");
-                Some(ClientRequest::SetPrompt(prompt))
-            }
-            "SETTITLE" => {
-                let title = parts[1..].join(" ");
-                Some(ClientRequest::SetTitle(title))
-            }
-            "SETOK" => {
-                let ok = parts[1..].join(" ");
-                Some(ClientRequest::SetOk(ok))
-            }
-            "SETCANCEL" => {
-                let cancel = parts[1..].join(" ");
-                Some(ClientRequest::SetCancel(cancel))
-            }
-            "SETNOTOK" => {
-                let notok = parts[1..].join(" ");
-                Some(ClientRequest::SetNotOk(notok))
-            }
-            "SETERROR" => {
-                let error = parts[1..].join(" ");
-                Some(ClientRequest::SetError(error))
-            }
-            "SETREPEAT" => Some(ClientRequest::SetRepeat),
-            "SETQUALITYBAR" => Some(ClientRequest::SetQualityBar),
-            "SETQUALITYBARTOOLTIP" => {
-                let tooltip = parts[1..].join(" ");
-                Some(ClientRequest::SetQualityBarTooltip(tooltip))
-            }
-            "SETGENPIN" => Some(ClientRequest::SetGenPin),
-            "SETGENPINTOOLTIP" => {
-                let tooltip = parts[1..].join(" ");
-                Some(ClientRequest::SetGenPinTooltip(tooltip))
-            }
-            "SETKEYINFO" => {
-                let keyinfo = parts[1..].join(" ");
-                Some(ClientRequest::SetKeyInfo(keyinfo))
-            }
-            _ => None,
+    pub fn parse(line: &str) -> Option<ClientRequest> {
+        let line = line.trim();
+        if line.is_empty() {
+            return None;
         }
+
+        let (keyword, arg) = match line.split_once(char::is_whitespace) {
+            Some((keyword, arg)) => (keyword, arg.trim_start()),
+            None => (line, ""),
+        };
+        let arg = percent_decode(arg);
+
+        let request = match keyword {
+            "BYE" => ClientRequest::Bye,
+            "RESET" => ClientRequest::Reset,
+            "END" => ClientRequest::End,
+            "HELP" => ClientRequest::Help,
+            "QUIT" => ClientRequest::Quit,
+            "CANCEL" => ClientRequest::Cancel,
+            "NOP" => ClientRequest::Nop,
+            "AUTH" => ClientRequest::Auth,
+            "OPTION" => ClientRequest::Option(PinentryOption::parse(&arg)),
+
+            "SETTIMEOUT" => ClientRequest::SetTimeout(arg.parse().unwrap_or(0)),
+            "SETDESC" => ClientRequest::SetDescription(arg),
+            "SETPROMPT" => ClientRequest::SetPrompt(arg),
+            "SETTITLE" => ClientRequest::SetTitle(arg),
+            "SETOK" => ClientRequest::SetOk(arg),
+            "SETCANCEL" => ClientRequest::SetCancel(arg),
+            "SETNOTOK" => ClientRequest::SetNotOk(arg),
+            "SETERROR" => ClientRequest::SetError(arg),
+            "SETREPEAT" => ClientRequest::SetRepeat(arg),
+            "SETREPEATERROR" => ClientRequest::SetRepeatError(arg),
+            "SETQUALITYBAR" => ClientRequest::SetQualityBar(arg),
+            "SETQUALITYBAR_TT" => ClientRequest::SetQualityBarTooltip(arg),
+            "SETGENPIN" => ClientRequest::SetGenpin(arg),
+            "SETGENPIN_TT" => ClientRequest::SetGenpinTooltip(arg),
+            "SETKEYINFO" => ClientRequest::SetKeyInfo(arg),
+
+            "GETPIN" => ClientRequest::GetPin,
+            "CONFIRM" => ClientRequest::Confirm {
+                one_button: arg.split_whitespace().any(|a| a == "--one-button"),
+            },
+            "MESSAGE" => ClientRequest::Message,
+            "GETINFO" => ClientRequest::GetInfo(arg),
+            "CLEARPASSPHRASE" => ClientRequest::ClearPassphrase(arg),
+
+            _ => return None,
+        };
+
+        Some(request)
+    }
+}
+
+fn percent_decode(input: &str) -> String {
+    let bytes = input.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' && i + 2 < bytes.len() {
+            if let (Some(hi), Some(lo)) = (hex_value(bytes[i + 1]), hex_value(bytes[i + 2])) {
+                out.push((hi << 4) | lo);
+                i += 3;
+                continue;
+            }
+        }
+        out.push(bytes[i]);
+        i += 1;
+    }
+    String::from_utf8_lossy(&out).into_owned()
+}
+
+fn hex_value(byte: u8) -> Option<u8> {
+    match byte {
+        b'0'..=b'9' => Some(byte - b'0'),
+        b'a'..=b'f' => Some(byte - b'a' + 10),
+        b'A'..=b'F' => Some(byte - b'A' + 10),
+        _ => None,
     }
 }
 
@@ -108,194 +122,113 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parses_bye_command() {
+    fn parses_a_bare_command() {
+        assert_eq!(ClientRequest::parse("GETPIN"), Some(ClientRequest::GetPin));
         assert_eq!(ClientRequest::parse("BYE"), Some(ClientRequest::Bye));
     }
 
     #[test]
-    fn parses_reset_command() {
-        assert_eq!(ClientRequest::parse("RESET"), Some(ClientRequest::Reset));
-    }
-
-    #[test]
-    fn parses_end_command() {
-        assert_eq!(ClientRequest::parse("END"), Some(ClientRequest::End));
-    }
-
-    #[test]
-    fn parses_help_command() {
-        assert_eq!(ClientRequest::parse("HELP"), Some(ClientRequest::Help));
-    }
-
-    #[test]
-    fn parses_quit_command() {
-        assert_eq!(ClientRequest::parse("QUIT"), Some(ClientRequest::Quit));
-    }
-
-    #[test]
-    fn parses_cancel_command() {
-        assert_eq!(ClientRequest::parse("CANCEL"), Some(ClientRequest::Cancel));
-    }
-
-    #[test]
-    fn parses_auth_command() {
-        assert_eq!(ClientRequest::parse("AUTH"), Some(ClientRequest::Auth));
-    }
-
-    #[test]
-    fn parses_nop_command() {
-        assert_eq!(ClientRequest::parse("NOP"), Some(ClientRequest::Nop));
-    }
-
-    #[test]
-    fn parses_option_command() {
+    fn keeps_the_argument_verbatim_including_inner_spaces() {
         assert_eq!(
-            ClientRequest::parse("OPTION formatted-passphrase"),
-            Some(ClientRequest::Option(PinentryOption::FormattedPassphrase))
-        );
-
-        assert_eq!(
-            ClientRequest::parse("OPTION"),
-            Some(ClientRequest::Option(PinentryOption::UnknownOption))
-        );
-    }
-
-    #[test]
-    fn parses_getpin_command() {
-        assert_eq!(ClientRequest::parse("GETPIN"), Some(ClientRequest::GetPin));
-    }
-
-    #[test]
-    fn parses_confirm_command() {
-        assert_eq!(
-            ClientRequest::parse("CONFIRM"),
-            Some(ClientRequest::Confirm)
-        );
-    }
-
-    #[test]
-    fn parses_message_command() {
-        assert_eq!(
-            ClientRequest::parse("MESSAGE"),
-            Some(ClientRequest::Message)
-        );
-    }
-
-    #[test]
-    fn parses_settimeout_command() {
-        assert_eq!(
-            ClientRequest::parse("SETTIMEOUT 10"),
-            Some(ClientRequest::SetTimeout(10))
-        );
-        assert_eq!(
-            ClientRequest::parse("SETTIMEOUT"),
-            Some(ClientRequest::SetTimeout(0))
-        );
-    }
-
-    #[test]
-    fn parses_setdesc_command() {
-        assert_eq!(
-            ClientRequest::parse("SETDESC Enter your password"),
+            ClientRequest::parse("SETDESC Enter the  passphrase for key 0xABCD"),
             Some(ClientRequest::SetDescription(
-                "Enter your password".to_string()
+                "Enter the  passphrase for key 0xABCD".into()
             ))
         );
     }
 
     #[test]
-    fn parses_setprompt_command() {
+    fn parses_settimeout_and_defaults_invalid_values_to_zero() {
         assert_eq!(
-            ClientRequest::parse("SETPROMPT Enter your password"),
-            Some(ClientRequest::SetPrompt("Enter your password".to_string()))
+            ClientRequest::parse("SETTIMEOUT 30"),
+            Some(ClientRequest::SetTimeout(30))
+        );
+        assert_eq!(
+            ClientRequest::parse("SETTIMEOUT"),
+            Some(ClientRequest::SetTimeout(0))
+        );
+        assert_eq!(
+            ClientRequest::parse("SETTIMEOUT garbage"),
+            Some(ClientRequest::SetTimeout(0))
         );
     }
 
     #[test]
-    fn parses_settitle_command() {
+    fn tooltip_commands_use_the_underscore_names() {
         assert_eq!(
-            ClientRequest::parse("SETTITLE Enter your password"),
-            Some(ClientRequest::SetTitle("Enter your password".to_string()))
+            ClientRequest::parse("SETQUALITYBAR_TT Strength"),
+            Some(ClientRequest::SetQualityBarTooltip("Strength".into()))
+        );
+        assert_eq!(
+            ClientRequest::parse("SETGENPIN_TT Generate"),
+            Some(ClientRequest::SetGenpinTooltip("Generate".into()))
         );
     }
 
     #[test]
-    fn parses_setok_command() {
-        assert_eq!(
-            ClientRequest::parse("SETOK OK"),
-            Some(ClientRequest::SetOk("OK".to_string()))
-        );
-    }
-
-    #[test]
-    fn parses_setcancel_command() {
-        assert_eq!(
-            ClientRequest::parse("SETCANCEL Cancel"),
-            Some(ClientRequest::SetCancel("Cancel".to_string()))
-        );
-    }
-
-    #[test]
-    fn parses_setnotok_command() {
-        assert_eq!(
-            ClientRequest::parse("SETNOTOK Not OK"),
-            Some(ClientRequest::SetNotOk("Not OK".to_string()))
-        );
-    }
-
-    #[test]
-    fn parses_seterror_command() {
-        assert_eq!(
-            ClientRequest::parse("SETERROR Error"),
-            Some(ClientRequest::SetError("Error".to_string()))
-        );
-    }
-
-    #[test]
-    fn parses_setrepeat_command() {
+    fn repeat_and_quality_bar_labels_are_optional() {
         assert_eq!(
             ClientRequest::parse("SETREPEAT"),
-            Some(ClientRequest::SetRepeat)
+            Some(ClientRequest::SetRepeat(String::new()))
+        );
+        assert_eq!(
+            ClientRequest::parse("SETREPEAT Repeat:"),
+            Some(ClientRequest::SetRepeat("Repeat:".into()))
         );
     }
 
     #[test]
-    fn parses_setqualitybar_command() {
+    fn confirm_detects_the_one_button_flag() {
         assert_eq!(
-            ClientRequest::parse("SETQUALITYBAR"),
-            Some(ClientRequest::SetQualityBar)
+            ClientRequest::parse("CONFIRM"),
+            Some(ClientRequest::Confirm { one_button: false })
+        );
+        assert_eq!(
+            ClientRequest::parse("CONFIRM --one-button"),
+            Some(ClientRequest::Confirm { one_button: true })
         );
     }
 
     #[test]
-    fn parses_setqualitybartooltip_command() {
+    fn parses_option_lines() {
         assert_eq!(
-            ClientRequest::parse("SETQUALITYBARTOOLTIP Tooltip"),
-            Some(ClientRequest::SetQualityBarTooltip("Tooltip".to_string()))
+            ClientRequest::parse("OPTION ttyname=/dev/pts/3"),
+            Some(ClientRequest::Option(PinentryOption::TtyName(
+                "/dev/pts/3".into()
+            )))
         );
     }
 
     #[test]
-    fn parses_setgenpin_command() {
+    fn parses_getinfo_subcommand() {
         assert_eq!(
-            ClientRequest::parse("SETGENPIN"),
-            Some(ClientRequest::SetGenPin)
+            ClientRequest::parse("GETINFO version"),
+            Some(ClientRequest::GetInfo("version".into()))
         );
     }
 
     #[test]
-    fn parses_setgenpintooltip_command() {
+    fn percent_decodes_escapes_in_arguments() {
         assert_eq!(
-            ClientRequest::parse("SETGENPINTOOLTIP Tooltip"),
-            Some(ClientRequest::SetGenPinTooltip("Tooltip".to_string()))
+            ClientRequest::parse("SETDESC Unlock the card%0A%0ANumber: 1 2 3%25"),
+            Some(ClientRequest::SetDescription(
+                "Unlock the card\n\nNumber: 1 2 3%".into()
+            ))
         );
     }
 
     #[test]
-    fn parses_setkeyinfo_command() {
+    fn leaves_a_lone_percent_untouched() {
         assert_eq!(
-            ClientRequest::parse("SETKEYINFO Key info"),
-            Some(ClientRequest::SetKeyInfo("Key info".to_string()))
+            ClientRequest::parse("SETPROMPT 50% done"),
+            Some(ClientRequest::SetPrompt("50% done".into()))
         );
+    }
+
+    #[test]
+    fn returns_none_for_unknown_or_empty_lines() {
+        assert_eq!(ClientRequest::parse("FROBNICATE now"), None);
+        assert_eq!(ClientRequest::parse(""), None);
+        assert_eq!(ClientRequest::parse("   "), None);
     }
 }

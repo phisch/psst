@@ -1,10 +1,8 @@
-use std::{
-    io::{BufRead, Write},
-    vec,
-};
+use std::io::{self, BufRead, Write};
 
 use client_request::ClientRequest;
 use error::AssuanError;
+use option::PinentryOption;
 use response::Response;
 
 pub mod client_request;
@@ -12,158 +10,252 @@ pub mod error;
 pub mod option;
 pub mod response;
 
-pub struct Pinentry<R, W> {
+#[derive(Debug, Default, Clone)]
+pub struct Settings {
+    pub timeout: Option<u32>,
+    pub description: Option<String>,
+    pub prompt: Option<String>,
+    pub title: Option<String>,
+    pub ok_label: Option<String>,
+    pub cancel_label: Option<String>,
+    pub not_ok_label: Option<String>,
+    pub error: Option<String>,
+    pub repeat: Option<String>,
+    pub repeat_error: Option<String>,
+    pub quality_bar: Option<String>,
+    pub quality_bar_tooltip: Option<String>,
+    pub generate_pin: Option<String>,
+    pub generate_pin_tooltip: Option<String>,
+    pub key_info: Option<String>,
+    pub formatted_passphrase: bool,
+    pub allow_external_cache: bool,
+
+    pub default_ok: Option<String>,
+    pub default_cancel: Option<String>,
+    pub default_prompt: Option<String>,
+    pub ttyname: Option<String>,
+    pub ttytype: Option<String>,
+    pub lc_ctype: Option<String>,
+    pub lc_messages: Option<String>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum PinOutcome {
+    Entered(String),
+    Cancelled,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum ConfirmOutcome {
+    Yes,
+    No,
+    Cancelled,
+}
+
+pub trait Frontend {
+    fn get_pin(&mut self, settings: &Settings) -> PinOutcome;
+    fn confirm(&mut self, settings: &Settings, one_button: bool) -> ConfirmOutcome;
+    fn message(&mut self, settings: &Settings);
+}
+
+pub struct Pinentry<R, W, F> {
     reader: R,
     writer: W,
-    timeout: Option<i32>,
-    description: Option<String>,
-    prompt: Option<String>,
-    title: Option<String>,
-    ok_button: Option<String>,
-    cancel_button: Option<String>,
-    not_ok_button: Option<String>,
-    error: Option<String>,
-    repeat: bool,
-    quality_bar: bool,
-    quality_bar_tooltip: Option<String>,
-    generate_pin: bool,
-    generate_pin_tooltip: Option<String>,
-    key_info: Option<String>,
+    frontend: F,
+    settings: Settings,
     should_quit: bool,
 }
 
-impl<R, W> Pinentry<R, W>
+impl<R, W, F> Pinentry<R, W, F>
 where
     R: BufRead,
     W: Write,
+    F: Frontend,
 {
-    pub fn new(reader: R, writer: W) -> Self {
+    pub fn new(reader: R, writer: W, frontend: F) -> Self {
         Pinentry {
             reader,
             writer,
-            timeout: None,
-            description: None,
-            prompt: None,
-            title: None,
-            ok_button: None,
-            cancel_button: None,
-            not_ok_button: None,
-            error: None,
-            repeat: false,
-            quality_bar: false,
-            quality_bar_tooltip: None,
-            generate_pin: false,
-            generate_pin_tooltip: None,
-            key_info: None,
+            frontend,
+            settings: Settings::default(),
             should_quit: false,
         }
     }
 
-    pub fn run(&mut self) {
-        let greeting = Response::Ok(Some("Pleased to meet you".to_string())).to_string();
-        writeln!(self.writer, "{}", greeting).unwrap();
+    pub fn run(&mut self) -> io::Result<()> {
+        self.send(Response::Ok(Some("Pleased to meet you".into())))?;
 
+        let mut line = String::new();
         loop {
-            let mut command = String::new();
-            self.reader.read_line(&mut command).unwrap();
-            command.pop();
+            line.clear();
+            if self.reader.read_line(&mut line)? == 0 {
+                break;
+            }
 
-            let responses = self.handle_request(ClientRequest::parse(&command));
-            for response in responses {
-                writeln!(self.writer, "{}", response).unwrap();
+            if line.trim().is_empty() {
+                continue;
+            }
+
+            for response in self.handle(ClientRequest::parse(&line)) {
+                self.send(response)?;
             }
 
             if self.should_quit {
                 break;
             }
         }
+
+        Ok(())
     }
 
-    fn handle_request(&mut self, request: Option<ClientRequest>) -> Vec<Response> {
+    fn send(&mut self, response: Response) -> io::Result<()> {
+        writeln!(self.writer, "{response}")?;
+        self.writer.flush()
+    }
+
+    fn handle(&mut self, request: Option<ClientRequest>) -> Vec<Response> {
+        let Some(request) = request else {
+            return vec![Response::Error(AssuanError::UnknownIpcCommand)];
+        };
+
         match request {
-            Some(request) => match request {
-                ClientRequest::Bye => {
-                    self.should_quit = true;
-                    vec![Response::Ok(Some("Closing connection".to_string()))]
-                }
-                ClientRequest::SetTimeout(timeout) => {
-                    self.timeout = Some(timeout);
-                    vec![Response::Ok(None)]
-                }
-                ClientRequest::SetDescription(desc) => {
-                    self.description = Some(desc);
-                    vec![Response::Ok(None)]
-                }
-                ClientRequest::SetPrompt(prompt) => {
-                    self.prompt = Some(prompt);
-                    vec![Response::Ok(None)]
-                }
-                ClientRequest::SetTitle(title) => {
-                    self.title = Some(title);
-                    vec![Response::Ok(None)]
-                }
-                ClientRequest::SetOk(ok_button) => {
-                    self.ok_button = Some(ok_button);
-                    vec![Response::Ok(None)]
-                }
-                ClientRequest::SetCancel(cancel_button) => {
-                    self.cancel_button = Some(cancel_button);
-                    vec![Response::Ok(None)]
-                }
-                ClientRequest::SetNotOk(not_ok_button) => {
-                    self.not_ok_button = Some(not_ok_button);
-                    vec![Response::Ok(None)]
-                }
-                ClientRequest::SetError(error) => {
-                    self.error = Some(error);
-                    vec![Response::Ok(None)]
-                }
-                ClientRequest::SetRepeat => {
-                    self.repeat = true;
-                    vec![Response::Ok(None)]
-                }
-                ClientRequest::SetQualityBar => {
-                    self.quality_bar = true;
-                    vec![Response::Ok(None)]
-                }
-                ClientRequest::SetQualityBarTooltip(tooltip) => {
-                    self.quality_bar_tooltip = Some(tooltip);
-                    vec![Response::Ok(None)]
-                }
-                ClientRequest::SetGenPin => {
-                    self.generate_pin = true;
-                    vec![Response::Ok(None)]
-                }
-                ClientRequest::SetGenPinTooltip(tooltip) => {
-                    self.generate_pin_tooltip = Some(tooltip);
-                    vec![Response::Ok(None)]
-                }
-                ClientRequest::SetKeyInfo(key_info) => {
-                    self.key_info = Some(key_info);
-                    vec![Response::Ok(None)]
-                }
-                ClientRequest::Reset => {
-                    self.timeout = None;
-                    self.description = None;
-                    self.prompt = None;
-                    self.title = None;
-                    self.ok_button = None;
-                    self.cancel_button = None;
-                    self.not_ok_button = None;
-                    self.error = None;
-                    self.repeat = false;
-                    self.quality_bar = false;
-                    self.quality_bar_tooltip = None;
-                    self.generate_pin = false;
-                    self.generate_pin_tooltip = None;
-                    self.key_info = None;
-                    vec![Response::Ok(None)]
-                }
-                _ => vec![Response::Error(AssuanError::NotImplemented)],
-            },
-            None => vec![Response::Error(AssuanError::UnknownIPCCommand)],
+            ClientRequest::Bye | ClientRequest::Quit => {
+                self.should_quit = true;
+                vec![Response::Ok(Some("closing connection".into()))]
+            }
+            ClientRequest::Reset => {
+                self.settings = Settings::default();
+                ok()
+            }
+            ClientRequest::Nop
+            | ClientRequest::Cancel
+            | ClientRequest::End
+            | ClientRequest::Help => ok(),
+            ClientRequest::Auth => not_implemented(),
+            ClientRequest::Option(option) => {
+                self.apply_option(option);
+                ok()
+            }
+
+            ClientRequest::SetTimeout(timeout) => {
+                self.settings.timeout = (timeout != 0).then_some(timeout);
+                ok()
+            }
+            ClientRequest::SetDescription(text) => set(&mut self.settings.description, text),
+            ClientRequest::SetPrompt(text) => set(&mut self.settings.prompt, text),
+            ClientRequest::SetTitle(text) => set(&mut self.settings.title, text),
+            ClientRequest::SetOk(text) => set(&mut self.settings.ok_label, text),
+            ClientRequest::SetCancel(text) => set(&mut self.settings.cancel_label, text),
+            ClientRequest::SetNotOk(text) => set(&mut self.settings.not_ok_label, text),
+            ClientRequest::SetError(text) => set(&mut self.settings.error, text),
+            ClientRequest::SetRepeat(label) => {
+                self.settings.repeat = Some(label);
+                ok()
+            }
+            ClientRequest::SetRepeatError(text) => set(&mut self.settings.repeat_error, text),
+            ClientRequest::SetQualityBar(label) => {
+                self.settings.quality_bar = Some(label);
+                ok()
+            }
+            ClientRequest::SetQualityBarTooltip(text) => {
+                set(&mut self.settings.quality_bar_tooltip, text)
+            }
+            ClientRequest::SetGenpin(label) => {
+                self.settings.generate_pin = Some(label);
+                ok()
+            }
+            ClientRequest::SetGenpinTooltip(text) => {
+                set(&mut self.settings.generate_pin_tooltip, text)
+            }
+            ClientRequest::SetKeyInfo(text) => set(&mut self.settings.key_info, text),
+
+            ClientRequest::GetPin => self.get_pin(),
+            ClientRequest::Confirm { one_button } => self.confirm(one_button),
+            ClientRequest::Message => {
+                self.frontend.message(&self.settings);
+                self.settings.error = None;
+                ok()
+            }
+            ClientRequest::GetInfo(what) => self.get_info(&what),
+            ClientRequest::ClearPassphrase(_) => ok(),
         }
     }
+
+    fn apply_option(&mut self, option: PinentryOption) {
+        match option {
+            PinentryOption::FormattedPassphrase => self.settings.formatted_passphrase = true,
+            PinentryOption::AllowExternalPasswordCache => self.settings.allow_external_cache = true,
+            PinentryOption::TtyType(value) => self.settings.ttytype = Some(value),
+            PinentryOption::TtyName(value) => self.settings.ttyname = Some(value),
+            PinentryOption::LcCtype(value) => self.settings.lc_ctype = Some(value),
+            PinentryOption::LcMessages(value) => self.settings.lc_messages = Some(value),
+            PinentryOption::DefaultOk(value) => self.settings.default_ok = Some(value),
+            PinentryOption::DefaultCancel(value) => self.settings.default_cancel = Some(value),
+            PinentryOption::DefaultPrompt(value) => self.settings.default_prompt = Some(value),
+            PinentryOption::Other(_) => {}
+        }
+    }
+
+    fn get_pin(&mut self) -> Vec<Response> {
+        let outcome = self.frontend.get_pin(&self.settings);
+        let repeated = self.settings.repeat.is_some();
+        self.settings.error = None;
+
+        match outcome {
+            PinOutcome::Entered(pin) => {
+                let mut responses = Vec::new();
+                if repeated {
+                    responses.push(Response::Status("PIN_REPEATED".into()));
+                }
+                if !pin.is_empty() {
+                    responses.push(Response::Data(pin));
+                }
+                responses.push(Response::Ok(None));
+                responses
+            }
+            PinOutcome::Cancelled => vec![Response::Error(AssuanError::Canceled)],
+        }
+    }
+
+    fn confirm(&mut self, one_button: bool) -> Vec<Response> {
+        let outcome = self.frontend.confirm(&self.settings, one_button);
+        self.settings.error = None;
+
+        match outcome {
+            ConfirmOutcome::Yes => ok(),
+            ConfirmOutcome::No => vec![Response::Error(AssuanError::NotConfirmed)],
+            ConfirmOutcome::Cancelled => vec![Response::Error(AssuanError::Canceled)],
+        }
+    }
+
+    fn get_info(&self, what: &str) -> Vec<Response> {
+        let data = match what {
+            "version" => env!("CARGO_PKG_VERSION").to_string(),
+            "pid" => std::process::id().to_string(),
+            "flavor" => "wayland".to_string(),
+            "ttyinfo" => {
+                let dash = "-".to_string();
+                let ttyname = self.settings.ttyname.as_ref().unwrap_or(&dash);
+                let ttytype = self.settings.ttytype.as_ref().unwrap_or(&dash);
+                format!("{ttyname} {ttytype} - - - -")
+            }
+            _ => return ok(),
+        };
+        vec![Response::Data(data), Response::Ok(None)]
+    }
+}
+
+fn ok() -> Vec<Response> {
+    vec![Response::Ok(None)]
+}
+
+fn not_implemented() -> Vec<Response> {
+    vec![Response::Error(AssuanError::NotImplemented)]
+}
+
+fn set(field: &mut Option<String>, value: String) -> Vec<Response> {
+    *field = Some(value);
+    ok()
 }
 
 #[cfg(test)]
@@ -172,235 +264,199 @@ mod tests {
 
     use super::*;
 
-    fn assert_input_produces_output(
-        input: Vec<&str>,
-        output: Vec<&str>,
-    ) -> Pinentry<Cursor<Vec<u8>>, Cursor<Vec<u8>>> {
-        let input_buffer = Cursor::new((input.join("\n") + "\n").into_bytes());
-        let output_buffer = Cursor::new(Vec::new());
+    #[derive(Default)]
+    struct MockFrontend {
+        pin_outcome: Option<PinOutcome>,
+        confirm_outcome: Option<ConfirmOutcome>,
+        seen: Option<Settings>,
+        messages: usize,
+    }
 
-        let mut pinentry = Pinentry::new(input_buffer, output_buffer);
-        pinentry.run();
+    impl Frontend for MockFrontend {
+        fn get_pin(&mut self, settings: &Settings) -> PinOutcome {
+            self.seen = Some(settings.clone());
+            self.pin_outcome
+                .take()
+                .unwrap_or(PinOutcome::Entered(String::new()))
+        }
 
+        fn confirm(&mut self, settings: &Settings, _one_button: bool) -> ConfirmOutcome {
+            self.seen = Some(settings.clone());
+            self.confirm_outcome.take().unwrap_or(ConfirmOutcome::Yes)
+        }
+
+        fn message(&mut self, settings: &Settings) {
+            self.seen = Some(settings.clone());
+            self.messages += 1;
+        }
+    }
+
+    #[allow(clippy::type_complexity)]
+    fn run_with(
+        frontend: MockFrontend,
+        input: &[&str],
+    ) -> (
+        Vec<String>,
+        Pinentry<Cursor<Vec<u8>>, Vec<u8>, MockFrontend>,
+    ) {
+        let reader = Cursor::new((input.join("\n") + "\n").into_bytes());
+        let mut pinentry = Pinentry::new(reader, Vec::new(), frontend);
+        pinentry.run().unwrap();
+
+        let output = String::from_utf8(pinentry.writer.clone()).unwrap();
+        let lines = output.lines().map(str::to_string).collect();
+        (lines, pinentry)
+    }
+
+    #[test]
+    fn greets_then_acknowledges_settings_and_closes() {
+        let (lines, _) = run_with(MockFrontend::default(), &["SETDESC hello", "BYE"]);
         assert_eq!(
-            output.join("\n") + "\n",
-            String::from_utf8(pinentry.writer.get_ref().to_vec()).unwrap()
+            lines,
+            vec!["OK Pleased to meet you", "OK", "OK closing connection"]
         );
-
-        pinentry
     }
 
     #[test]
-    fn bye_command_closes_connection() {
-        let pinentry = assert_input_produces_output(
-            vec!["BYE"],
-            vec!["OK Pleased to meet you", "OK Closing connection"],
-        );
-        assert_eq!(pinentry.should_quit, true);
-    }
-
-    #[test]
-    fn setdesc_command_sets_description() {
-        let pinentry = assert_input_produces_output(
-            vec!["SETDESC Hello, world!", "BYE"],
-            vec!["OK Pleased to meet you", "OK", "OK Closing connection"],
-        );
-        assert_eq!(pinentry.description, Some("Hello, world!".to_string()));
-    }
-
-    #[test]
-    fn settimeout_command_sets_timeout() {
-        let pinentry = assert_input_produces_output(
-            vec!["SETTIMEOUT 10", "BYE"],
-            vec!["OK Pleased to meet you", "OK", "OK Closing connection"],
-        );
-        assert_eq!(pinentry.timeout, Some(10));
-    }
-
-    #[test]
-    fn setprompt_command_sets_prompt() {
-        let pinentry = assert_input_produces_output(
-            vec!["SETPROMPT Enter your password", "BYE"],
-            vec!["OK Pleased to meet you", "OK", "OK Closing connection"],
-        );
-        assert_eq!(pinentry.prompt, Some("Enter your password".to_string()));
-    }
-
-    #[test]
-    fn settitle_command_sets_title() {
-        let pinentry = assert_input_produces_output(
-            vec!["SETTITLE Enter your password", "BYE"],
-            vec!["OK Pleased to meet you", "OK", "OK Closing connection"],
-        );
-        assert_eq!(pinentry.title, Some("Enter your password".to_string()));
-    }
-
-    #[test]
-    fn setok_command_sets_ok_button() {
-        let pinentry = assert_input_produces_output(
-            vec!["SETOK OK", "BYE"],
-            vec!["OK Pleased to meet you", "OK", "OK Closing connection"],
-        );
-        assert_eq!(pinentry.ok_button, Some("OK".to_string()));
-    }
-
-    #[test]
-    fn setcancel_command_sets_cancel_button() {
-        let pinentry = assert_input_produces_output(
-            vec!["SETCANCEL Cancel", "BYE"],
-            vec!["OK Pleased to meet you", "OK", "OK Closing connection"],
-        );
-        assert_eq!(pinentry.cancel_button, Some("Cancel".to_string()));
-    }
-
-    #[test]
-    fn setnotok_command_sets_not_ok_button() {
-        let pinentry = assert_input_produces_output(
-            vec!["SETNOTOK Not OK", "BYE"],
-            vec!["OK Pleased to meet you", "OK", "OK Closing connection"],
-        );
-        assert_eq!(pinentry.not_ok_button, Some("Not OK".to_string()));
-    }
-
-    #[test]
-    fn seterror_command_sets_error() {
-        let pinentry = assert_input_produces_output(
-            vec!["SETERROR Error message", "BYE"],
-            vec!["OK Pleased to meet you", "OK", "OK Closing connection"],
-        );
-        assert_eq!(pinentry.error, Some("Error message".to_string()));
-    }
-
-    #[test]
-    fn setrepeat_command_sets_repeat() {
-        let pinentry = assert_input_produces_output(
-            vec!["SETREPEAT", "BYE"],
-            vec!["OK Pleased to meet you", "OK", "OK Closing connection"],
-        );
-        assert_eq!(pinentry.repeat, true);
-    }
-
-    #[test]
-    fn setqualitybar_command_sets_quality_bar() {
-        let pinentry = assert_input_produces_output(
-            vec!["SETQUALITYBAR", "BYE"],
-            vec!["OK Pleased to meet you", "OK", "OK Closing connection"],
-        );
-        assert_eq!(pinentry.quality_bar, true);
-    }
-
-    #[test]
-    fn setqualitybartooltip_command_sets_quality_bar_tooltip() {
-        let pinentry = assert_input_produces_output(
-            vec!["SETQUALITYBARTOOLTIP Tooltip", "BYE"],
-            vec!["OK Pleased to meet you", "OK", "OK Closing connection"],
-        );
-        assert_eq!(pinentry.quality_bar_tooltip, Some("Tooltip".to_string()));
-    }
-
-    #[test]
-    fn setgenpin_command_sets_generate_pin() {
-        let pinentry = assert_input_produces_output(
-            vec!["SETGENPIN", "BYE"],
-            vec!["OK Pleased to meet you", "OK", "OK Closing connection"],
-        );
-        assert_eq!(pinentry.generate_pin, true);
-    }
-
-    #[test]
-    fn setgenpintooltip_command_sets_generate_pin_tooltip() {
-        let pinentry = assert_input_produces_output(
-            vec!["SETGENPINTOOLTIP Tooltip", "BYE"],
-            vec!["OK Pleased to meet you", "OK", "OK Closing connection"],
-        );
-        assert_eq!(pinentry.generate_pin_tooltip, Some("Tooltip".to_string()));
-    }
-
-    #[test]
-    fn setkeyinfo_command_sets_key_info() {
-        let pinentry = assert_input_produces_output(
-            vec!["SETKEYINFO Key info", "BYE"],
-            vec!["OK Pleased to meet you", "OK", "OK Closing connection"],
-        );
-        assert_eq!(pinentry.key_info, Some("Key info".to_string()));
-    }
-
-    #[test]
-    fn reset_command_resets_all_fields() {
-        let pinentry = assert_input_produces_output(
-            vec![
-                "SETDESC Hello, world!",
-                "SETPROMPT Enter your password",
-                "SETTITLE Enter your password",
-                "SETOK OK",
-                "SETCANCEL Cancel",
-                "SETNOTOK Not OK",
-                "SETERROR Error message",
-                "SETREPEAT",
-                "SETQUALITYBAR",
-                "SETQUALITYBARTOOLTIP Tooltip",
-                "SETGENPIN",
-                "SETGENPINTOOLTIP Tooltip",
-                "SETKEYINFO Key info",
-                "RESET",
-                "BYE",
-            ],
-            vec![
-                "OK Pleased to meet you",
-                "OK",
-                "OK",
-                "OK",
-                "OK",
-                "OK",
-                "OK",
-                "OK",
-                "OK",
-                "OK",
-                "OK",
-                "OK",
-                "OK",
-                "OK",
-                "OK",
-                "OK Closing connection",
+    fn collects_settings_for_the_dialog() {
+        let (_, pinentry) = run_with(
+            MockFrontend::default(),
+            &[
+                "SETTITLE Authentication",
+                "SETDESC Please unlock the key",
+                "SETPROMPT Passphrase:",
+                "OPTION ttyname=/dev/pts/2",
+                "GETPIN",
             ],
         );
-
-        assert_eq!(pinentry.description, None);
-        assert_eq!(pinentry.prompt, None);
-        assert_eq!(pinentry.title, None);
-        assert_eq!(pinentry.ok_button, None);
-        assert_eq!(pinentry.cancel_button, None);
-        assert_eq!(pinentry.not_ok_button, None);
-        assert_eq!(pinentry.error, None);
-        assert_eq!(pinentry.repeat, false);
-        assert_eq!(pinentry.quality_bar, false);
-        assert_eq!(pinentry.quality_bar_tooltip, None);
-        assert_eq!(pinentry.generate_pin, false);
-        assert_eq!(pinentry.generate_pin_tooltip, None);
-        assert_eq!(pinentry.key_info, None);
+        let seen = pinentry.frontend.seen.unwrap();
+        assert_eq!(seen.title.as_deref(), Some("Authentication"));
+        assert_eq!(seen.description.as_deref(), Some("Please unlock the key"));
+        assert_eq!(seen.prompt.as_deref(), Some("Passphrase:"));
+        assert_eq!(seen.ttyname.as_deref(), Some("/dev/pts/2"));
     }
 
     #[test]
-    fn unimplemented_command_returns_not_implemented_error() {
-        assert_input_produces_output(
-            vec!["CANCEL", "BYE"],
-            vec![
-                "OK Pleased to meet you",
-                "ERR 536870981 Not implemented <User defined source 1>",
-                "OK Closing connection",
-            ],
+    fn getpin_returns_data_then_ok() {
+        let frontend = MockFrontend {
+            pin_outcome: Some(PinOutcome::Entered("hunter2".into())),
+            ..Default::default()
+        };
+        let (lines, _) = run_with(frontend, &["GETPIN", "BYE"]);
+        assert_eq!(lines[1], "D hunter2");
+        assert_eq!(lines[2], "OK");
+    }
+
+    #[test]
+    fn getpin_with_empty_passphrase_returns_only_ok() {
+        let frontend = MockFrontend {
+            pin_outcome: Some(PinOutcome::Entered(String::new())),
+            ..Default::default()
+        };
+        let (lines, _) = run_with(frontend, &["GETPIN", "BYE"]);
+        assert_eq!(
+            lines,
+            vec!["OK Pleased to meet you", "OK", "OK closing connection"]
         );
     }
 
     #[test]
-    fn unknown_command_returns_unknown_ipc_command_error() {
-        assert_input_produces_output(
-            vec!["FOO", "BYE"],
-            vec![
-                "OK Pleased to meet you",
-                "ERR 536871187 Unknown IPC command <User defined source 1>",
-                "OK Closing connection",
-            ],
+    fn getpin_emits_pin_repeated_status_when_repeat_is_set() {
+        let frontend = MockFrontend {
+            pin_outcome: Some(PinOutcome::Entered("secret".into())),
+            ..Default::default()
+        };
+        let (lines, _) = run_with(frontend, &["SETREPEAT Repeat:", "GETPIN", "BYE"]);
+        assert_eq!(lines[1], "OK");
+        assert_eq!(lines[2], "S PIN_REPEATED");
+        assert_eq!(lines[3], "D secret");
+        assert_eq!(lines[4], "OK");
+    }
+
+    #[test]
+    fn cancelled_getpin_returns_canceled_error() {
+        let frontend = MockFrontend {
+            pin_outcome: Some(PinOutcome::Cancelled),
+            ..Default::default()
+        };
+        let (lines, _) = run_with(frontend, &["GETPIN", "BYE"]);
+        assert_eq!(
+            lines[1],
+            "ERR 536871011 Operation cancelled <User defined source 1>"
+        );
+    }
+
+    #[test]
+    fn confirm_maps_outcomes_to_protocol_responses() {
+        for (outcome, expected) in [
+            (ConfirmOutcome::Yes, "OK"),
+            (
+                ConfirmOutcome::No,
+                "ERR 536871026 Not confirmed <User defined source 1>",
+            ),
+            (
+                ConfirmOutcome::Cancelled,
+                "ERR 536871011 Operation cancelled <User defined source 1>",
+            ),
+        ] {
+            let frontend = MockFrontend {
+                confirm_outcome: Some(outcome),
+                ..Default::default()
+            };
+            let (lines, _) = run_with(frontend, &["CONFIRM", "BYE"]);
+            assert_eq!(lines[1], expected);
+        }
+    }
+
+    #[test]
+    fn message_shows_a_dialog_and_acks() {
+        let (lines, pinentry) = run_with(MockFrontend::default(), &["MESSAGE", "BYE"]);
+        assert_eq!(lines[1], "OK");
+        assert_eq!(pinentry.frontend.messages, 1);
+    }
+
+    #[test]
+    fn seterror_is_cleared_after_a_dialog() {
+        let frontend = MockFrontend {
+            pin_outcome: Some(PinOutcome::Entered("x".into())),
+            ..Default::default()
+        };
+        let (_, pinentry) = run_with(frontend, &["SETERROR oops", "GETPIN"]);
+        assert_eq!(pinentry.settings.error, None);
+    }
+
+    #[test]
+    fn reset_clears_settings() {
+        let (_, pinentry) = run_with(
+            MockFrontend::default(),
+            &["SETDESC hello", "SETPROMPT pw", "RESET"],
+        );
+        assert!(pinentry.settings.description.is_none());
+        assert!(pinentry.settings.prompt.is_none());
+    }
+
+    #[test]
+    fn getinfo_version_returns_the_crate_version() {
+        let (lines, _) = run_with(MockFrontend::default(), &["GETINFO version", "BYE"]);
+        assert_eq!(lines[1], format!("D {}", env!("CARGO_PKG_VERSION")));
+        assert_eq!(lines[2], "OK");
+    }
+
+    #[test]
+    fn unknown_command_reports_unknown_ipc_command() {
+        let (lines, _) = run_with(MockFrontend::default(), &["FROBNICATE", "BYE"]);
+        assert_eq!(
+            lines[1],
+            "ERR 536871187 Unknown IPC command <User defined source 1>"
+        );
+    }
+
+    #[test]
+    fn blank_lines_are_ignored() {
+        let (lines, _) = run_with(MockFrontend::default(), &["", "   ", "BYE"]);
+        assert_eq!(
+            lines,
+            vec!["OK Pleased to meet you", "OK closing connection"]
         );
     }
 }
