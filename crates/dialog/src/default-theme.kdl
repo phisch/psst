@@ -1,0 +1,170 @@
+// hush theme - copy to $XDG_CONFIG_HOME/hush/theme.kdl
+//
+// Every node is optional, whatever you omit keeps the default shown here.
+//
+// layout { ... } values cannot be changed per interaction state,
+// so they are once per element root.
+//
+// So `:focus`, `:hover`, or `:checked` blocks have exactly the same properties
+// (excluding `layout`) as its element.
+//
+// Colors are "#rgb" / "#rgba" / "#rrggbb" / "#rrggbbaa".
+// Fonts are a family name `"Inter"` or `"monospace"` / `"default"`.
+
+Backdrop {
+    color "#000000cc"
+
+    Window {
+        layout {
+            width 430
+            spacing 20
+            padding { x 28; y 26 }
+        }
+        background "#121212"
+        border { color "#212121"; size 2 }
+        radius 16
+        shadow { color "#00000099"; blur 56; offset 18 }
+
+        TitleIcon {
+            // svg ##"<svg ...>"##
+            layout {
+                size 22
+                padding 10
+            }
+            color "#bdcffa"
+            background "#5900ff66"
+            border { color "#00000000"; size 0 }
+            radius 8
+        }
+
+        Title {
+            layout { font { family "Inter"; size 24 } }
+            color "#f0f0f2"
+        }
+
+        Description {
+            Label {
+                layout { font { family "default"; size 13 } }
+                color "#737580"
+            }
+            Value {
+                layout { font { family "monospace"; size 13 } }
+                color "#9ea1ab"
+            }
+        }
+
+        Error {
+            layout {
+                font { family "default"; size 13 }
+                padding { x 12; y 8 }
+            }
+            color "#eb7578"
+            background "#eb75781a"
+            border { color "#00000000"; size 0 }
+            radius 8
+        }
+
+        Field {
+            layout {
+                font { family "monospace"; size 15 }
+                padding { x 13; y 11 }
+            }
+            color "#f0f0f2"
+            placeholder "#6b6e78"
+            selection "#59001a59"
+            background "#0f0f0f"
+            border { color "#272727"; size 1 }
+            radius 9
+            :focus {
+                color "#f0f0f2"
+                placeholder "#6b6e78"
+                selection "#59001a59"
+                background "#1d1d1d"
+                border { color "#272727"; size 1 }
+                radius 9
+            }
+
+            Reveal {
+                // eye ##"<svg ...>"##
+                // eye-off ##"<svg ...>"##
+                layout { size 20 }
+                color "#999ca8"
+            }
+            Strength {
+                layout { height 6 }
+                track "#222222"
+                weak "#e5484d"
+                medium "#e6b340"
+                strong "#5cc86b"
+                border { color "#00000000"; size 0 }
+                radius 3
+            }
+        }
+
+        Checkbox {
+            layout {
+                font { family "default"; size 13 }
+                box 16
+                spacing 10
+            }
+            color "#9ea1ab66"
+            check "#ffffff"
+            background "#0f0f0f"
+            border { color "#272727"; size 1 }
+            radius 4
+            :checked {
+                color "#9ea1ab"
+                check "#ffffff"
+                background "#0f0f0f"
+                border { color "#272727"; size 1 }
+                radius 4
+            }
+        }
+
+        Confirm {
+            layout {
+                font { family "default"; size 13 }
+                padding { x 18; y 9 }
+            }
+            color "#d6e3ff"
+            background "#5900ff66"
+            border { color "#00000000"; size 0 }
+            radius 6
+            :hover {
+                color "#d6e3ff"
+                background "#5900ff99"
+                border { color "#00000000"; size 0 }
+                radius 6
+            }
+        }
+
+        Cancel {
+            layout {
+                font { family "default"; size 13 }
+                padding { x 12; y 9 }
+            }
+            color "#8f8f8f"
+            background "#00000000"
+            border { color "#00000000"; size 0 }
+            radius 8
+            :hover {
+                color "#8f8f8f"
+                background "#1f1f1f"
+                border { color "#00000000"; size 0 }
+                radius 8
+            }
+        }
+
+        Hint {
+            layout { spacing 6 }
+            Key {
+                layout { font { family "monospace"; size 12 } }
+                color "#a5a5a5"
+            }
+            Word {
+                layout { font { family "default"; size 12 } }
+                color "#393939"
+            }
+        }
+    }
+}

@@ -141,8 +141,14 @@ fn dialog_config(request: &PromptRequest) -> DialogConfig {
         description: request.description.clone(),
         error: request.warning.clone(),
         placeholder: if confirm { "New password" } else { "Password" }.to_string(),
-        ok_label: request.continue_label.clone().unwrap_or_else(|| "Unlock".to_string()),
-        cancel_label: request.cancel_label.clone().unwrap_or_else(|| "Cancel".to_string()),
+        ok_label: request
+            .continue_label
+            .clone()
+            .unwrap_or_else(|| "Unlock".to_string()),
+        cancel_label: request
+            .cancel_label
+            .clone()
+            .unwrap_or_else(|| "Cancel".to_string()),
         not_ok_label: None,
         repeat_label: confirm.then(|| "Confirm password".to_string()),
         repeat_error: "Passwords do not match.".to_string(),
