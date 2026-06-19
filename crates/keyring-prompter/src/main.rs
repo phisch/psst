@@ -21,7 +21,6 @@ fn main() {
         return;
     }
     hardening::forbid_dumps();
-    hardening::lock_memory();
     if let Err(error) = keyring_prompter::run(SubprocessPrompter) {
         eprintln!("hush-keyring: {error}");
         std::process::exit(1);
