@@ -27,6 +27,16 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
 
+      - name: Check tag matches Cargo version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          want="${GITHUB_REF_NAME#v}"
+          have="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
+          if [ "$want" != "$have" ]; then
+            echo "tag v$want does not match Cargo.toml version $have" >&2
+            exit 1
+          fi
+
       - name: Build release binaries
         run: cargo build --release --locked
 
