@@ -88,16 +88,24 @@ impl Service {
         let request = build_request(&properties, want_password);
 
         let cancel = Cancel::default();
-        self.active.lock().unwrap().insert(key.clone(), cancel.clone());
+        self.active
+            .lock()
+            .unwrap()
+            .insert(key.clone(), cancel.clone());
 
         let ui = self.ui.clone();
         let active = self.active.clone();
         let connection = connection.clone();
+        let prompt_cancel = cancel.clone();
         tokio::spawn(async move {
-            let response = tokio::task::spawn_blocking(move || ui.prompt(request, &cancel))
+            let response = tokio::task::spawn_blocking(move || ui.prompt(request, &prompt_cancel))
                 .await
                 .unwrap_or(PromptResponse::Dismissed);
             active.lock().unwrap().remove(&key);
+
+            if cancel.is_cancelled() {
+                return;
+            }
 
             let (reply, message, properties) = match response {
                 PromptResponse::Password(secret) => {
@@ -129,9 +137,11 @@ impl Service {
             return;
         };
         self.sessions.lock().unwrap().remove(&key);
-        if let Some(cancel) = self.active.lock().unwrap().remove(&key) {
-            cancel.trigger();
-        }
+
+        let Some(cancel) = self.active.lock().unwrap().remove(&key) else {
+            return;
+        };
+        cancel.trigger();
 
         let connection = connection.clone();
         tokio::spawn(async move {
@@ -154,7 +164,9 @@ async fn authorized(connection: &Connection, sender: &str) -> bool {
         return false;
     };
     match std::fs::read_link(format!("/proc/{pid}/exe")) {
-        Ok(path) => path.file_name().is_some_and(|name| name == "gnome-keyring-daemon"),
+        Ok(path) => path
+            .file_name()
+            .is_some_and(|name| name == "gnome-keyring-daemon"),
         Err(_) => false,
     }
 }
