@@ -22,7 +22,7 @@ fn main() {
     }
     hardening::forbid_dumps();
     if let Err(error) = keyring_prompter::run(SubprocessPrompter) {
-        eprintln!("hush-keyring: {error}");
+        eprintln!("psst-keyring: {error}");
         std::process::exit(1);
     }
 }

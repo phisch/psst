@@ -94,7 +94,7 @@ fn main() {
     let mut pinentry = Pinentry::new(stdin().lock(), stdout().lock(), LayerShell);
 
     if let Err(error) = pinentry.run() {
-        eprintln!("hush-pinentry: {error}");
+        eprintln!("psst-pinentry: {error}");
         std::process::exit(1);
     }
 }

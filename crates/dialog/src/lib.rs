@@ -149,7 +149,7 @@ pub fn run_dialog(config: DialogConfig) -> DialogResult {
     std::thread::spawn(move || {
         if let Err(std::sync::mpsc::RecvTimeoutError::Timeout) = done_rx.recv_timeout(MAX_LIFETIME)
         {
-            eprintln!("hush: dialog timed out; releasing keyboard grab");
+            eprintln!("psst: dialog timed out; releasing keyboard grab");
             std::process::exit(2);
         }
     });
@@ -177,7 +177,7 @@ pub fn run_dialog(config: DialogConfig) -> DialogResult {
 }
 
 fn namespace() -> String {
-    String::from("pinentry")
+    String::from("psst")
 }
 
 fn subscription(_state: &State) -> iced::Subscription<Message> {
@@ -587,7 +587,7 @@ fn footer(state: &State) -> Element<'_, Message> {
 
 fn hints(config: &DialogConfig) -> Element<'_, Message> {
     let items: &[(&str, &str)] = match config.kind {
-        DialogKind::Pin => &[("\u{21B5}", "unlock"), ("esc", "cancel")],
+        DialogKind::Pin => &[("\u{21B5}", "unlock"), ("Esc", "cancel")],
         DialogKind::Confirm { one_button: false } => &[("\u{21B5}", "confirm"), ("esc", "cancel")],
         DialogKind::Confirm { one_button: true } | DialogKind::Message => {
             &[("\u{21B5}", "dismiss")]

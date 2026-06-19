@@ -4,8 +4,13 @@ use std::sync::OnceLock;
 use iced::{Color, Font};
 use kdl::{KdlDocument, KdlNode, KdlValue};
 
-const fn hex(r: u8, g: u8, b: u8) -> Color {
-    Color::from_rgb(r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0)
+const fn rgba(value: u32) -> Color {
+    Color {
+        r: ((value >> 24) & 0xFF) as f32 / 255.0,
+        g: ((value >> 16) & 0xFF) as f32 / 255.0,
+        b: ((value >> 8) & 0xFF) as f32 / 255.0,
+        a: (value & 0xFF) as f32 / 255.0,
+    }
 }
 
 const LOCK_SVG: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" height="40px" viewBox="0 -960 960 960" width="40px" fill="#e3e3e3"><path d="M226.67-80q-27.5 0-47.09-19.58Q160-119.17 160-146.67v-422.66q0-27.5 19.58-47.09Q199.17-636 226.67-636h60v-90.67q0-80.23 56.57-136.78T480.07-920q80.26 0 136.76 56.55 56.5 56.55 56.5 136.78V-636h60q27.5 0 47.09 19.58Q800-596.83 800-569.33v422.66q0 27.5-19.58 47.09Q760.83-80 733.33-80H226.67Zm0-66.67h506.66v-422.66H226.67v422.66Zm308.5-155.85Q558-325.04 558-356.67q0-31-22.95-55.16Q512.11-436 479.89-436t-55.06 24.17Q402-387.67 402-356.33q0 31.33 22.95 53.83 22.94 22.5 55.16 22.5t55.06-22.52ZM353.33-636h253.34v-90.67q0-52.77-36.92-89.72-36.93-36.94-89.67-36.94-52.75 0-89.75 36.94-37 36.95-37 89.72V-636ZM226.67-146.67v-422.66 422.66Z"/></svg>"##;
@@ -192,7 +197,7 @@ pub struct Theme {
 
 fn no_border() -> BorderStyle {
     BorderStyle {
-        color: Color::TRANSPARENT,
+        color: rgba(0x00000000),
         size: 0.0,
     }
 }
@@ -206,19 +211,19 @@ impl Default for Theme {
             },
             padding: Padding { x: 13.0, y: 11.0 },
             paint: FieldPaint {
-                color: Color::from_rgb(0.94, 0.94, 0.95),
-                placeholder: Color::from_rgb(0.42, 0.43, 0.47),
-                selection: Color::from_rgba(0.35, 0.0, 0.1, 0.35),
-                background: hex(0x0F, 0x0F, 0x0F),
+                color: rgba(0xf0f0f2ff),
+                placeholder: rgba(0x6b6e78ff),
+                selection: rgba(0x59001a59),
+                background: rgba(0x0f0f0fff),
                 border: BorderStyle {
-                    color: hex(0x27, 0x27, 0x27),
+                    color: rgba(0x272727ff),
                     size: 1.0,
                 },
-                radius: 9.0,
+                radius: 8.0,
             },
         };
         let field_focus = FieldPaint {
-            background: hex(0x1D, 0x1D, 0x1D),
+            background: rgba(0x1d1d1dff),
             ..field.paint.clone()
         };
 
@@ -230,18 +235,18 @@ impl Default for Theme {
             box_size: 16.0,
             spacing: 10.0,
             paint: CheckboxPaint {
-                color: Color::from_rgba(0.62, 0.63, 0.67, 0.4),
-                check: Color::from_rgb(1.0, 1.0, 1.0),
-                background: hex(0x0F, 0x0F, 0x0F),
+                color: rgba(0x9ea1ab66),
+                check: rgba(0xffffffff),
+                background: rgba(0x0f0f0fff),
                 border: BorderStyle {
-                    color: hex(0x27, 0x27, 0x27),
+                    color: rgba(0x272727ff),
                     size: 1.0,
                 },
                 radius: 4.0,
             },
         };
         let checkbox_checked = CheckboxPaint {
-            color: Color::from_rgb(0.62, 0.63, 0.67),
+            color: rgba(0x9ea1abff),
             ..checkbox.paint.clone()
         };
 
@@ -252,14 +257,14 @@ impl Default for Theme {
             },
             padding: Padding { x: 18.0, y: 9.0 },
             paint: ButtonPaint {
-                color: Color::from_rgb(0.84, 0.89, 1.0),
-                background: Color::from_rgba(0.35, 0.0, 1.0, 0.4),
+                color: rgba(0xFFFFFF80),
+                background: rgba(0x4D00FF50),
                 border: no_border(),
                 radius: 6.0,
             },
         };
         let confirm_hover = ButtonPaint {
-            background: Color::from_rgba(0.35, 0.0, 1.0, 0.6),
+            background: rgba(0x4D00FF90),
             ..confirm.paint.clone()
         };
 
@@ -270,44 +275,44 @@ impl Default for Theme {
             },
             padding: Padding { x: 12.0, y: 9.0 },
             paint: ButtonPaint {
-                color: hex(0x8F, 0x8F, 0x8F),
-                background: Color::TRANSPARENT,
+                color: rgba(0x8f8f8fff),
+                background: rgba(0xffffff02),
                 border: no_border(),
-                radius: 8.0,
+                radius: 6.0,
             },
         };
         let cancel_hover = ButtonPaint {
-            background: hex(0x1F, 0x1F, 0x1F),
+            background: rgba(0xffffff03),
             ..cancel.paint.clone()
         };
 
         Theme {
             backdrop: Backdrop {
-                color: Color::from_rgba(0.0, 0.0, 0.0, 0.8),
+                color: rgba(0x000000A0),
             },
             window: Window {
-                background: Color::from_rgb(0.07, 0.07, 0.07),
+                background: rgba(0x121212ff),
                 border: BorderStyle {
-                    color: Color::from_rgb(0.13, 0.13, 0.13),
+                    color: rgba(0x212121ff),
                     size: 2.0,
                 },
                 radius: 16.0,
                 shadow: ShadowStyle {
-                    color: Color::from_rgba(0.0, 0.0, 0.0, 0.6),
-                    blur: 56.0,
-                    offset: 18.0,
+                    color: rgba(0x00000080),
+                    blur: 40.0,
+                    offset: 12.0,
                 },
-                width: 430.0,
+                width: 530.0,
                 padding: Padding { x: 28.0, y: 26.0 },
                 spacing: 20.0,
             },
             title_icon: TitleIcon {
                 svg: LOCK_SVG.to_string(),
-                color: Color::from_rgb(0.74, 0.81, 0.98),
-                background: Color::from_rgba(0.35, 0.0, 1.0, 0.4),
+                color: rgba(0xDBCBFFFF),
+                background: rgba(0x4D00FF50),
                 border: no_border(),
                 radius: 8.0,
-                size: 22.0,
+                size: 24.0,
                 padding: 10.0,
             },
             title: Title {
@@ -315,7 +320,7 @@ impl Default for Theme {
                     family: Font::with_name("Inter"),
                     size: 24.0,
                 },
-                color: Color::from_rgb(0.94, 0.94, 0.95),
+                color: rgba(0xf0f0f2ff),
             },
             description: Description {
                 label: Text {
@@ -323,14 +328,14 @@ impl Default for Theme {
                         family: Font::DEFAULT,
                         size: 13.0,
                     },
-                    color: Color::from_rgb(0.45, 0.46, 0.50),
+                    color: rgba(0x737580ff),
                 },
                 value: Text {
                     font: FontStyle {
                         family: Font::MONOSPACE,
                         size: 13.0,
                     },
-                    color: Color::from_rgb(0.62, 0.63, 0.67),
+                    color: rgba(0x9ea1abff),
                 },
             },
             error: Error {
@@ -338,25 +343,25 @@ impl Default for Theme {
                     family: Font::DEFAULT,
                     size: 13.0,
                 },
-                color: Color::from_rgb(0.92, 0.46, 0.47),
-                background: Color::from_rgba(0.92, 0.46, 0.47, 0.10),
+                color: rgba(0xeb7578ff),
+                background: rgba(0xb01d3606),
                 border: no_border(),
-                radius: 8.0,
+                radius: 6.0,
                 padding: Padding { x: 12.0, y: 8.0 },
             },
             field,
             field_focus,
             reveal: Reveal {
-                color: Color::from_rgb(0.60, 0.61, 0.66),
+                color: rgba(0x999ca8ff),
                 size: 20.0,
                 eye: EYE_SVG.to_string(),
                 eye_off: EYE_OFF_SVG.to_string(),
             },
             strength: Strength {
-                track: hex(0x22, 0x22, 0x22),
-                weak: hex(0xE5, 0x48, 0x4D),
-                medium: hex(0xE6, 0xB3, 0x40),
-                strong: hex(0x5C, 0xC8, 0x6B),
+                track: rgba(0x222222ff),
+                weak: rgba(0xe5484dff),
+                medium: rgba(0xe6b340ff),
+                strong: rgba(0x5cc86bff),
                 border: no_border(),
                 radius: 3.0,
                 height: 6.0,
@@ -373,14 +378,14 @@ impl Default for Theme {
                         family: Font::MONOSPACE,
                         size: 12.0,
                     },
-                    color: hex(0xA5, 0xA5, 0xA5),
+                    color: rgba(0xa5a5a5ff),
                 },
                 word: Text {
                     font: FontStyle {
                         family: Font::DEFAULT,
                         size: 12.0,
                     },
-                    color: hex(0x39, 0x39, 0x39),
+                    color: rgba(0x393939ff),
                 },
                 spacing: 6.0,
             },
@@ -402,7 +407,7 @@ impl Theme {
         };
         match KdlDocument::parse(&text) {
             Ok(doc) => read_theme(&doc, &mut theme),
-            Err(error) => eprintln!("hush: ignoring invalid theme: {error}"),
+            Err(error) => eprintln!("psst: ignoring invalid theme: {error}"),
         }
         theme
     }
@@ -413,7 +418,7 @@ fn config_path() -> Option<PathBuf> {
         .filter(|value| !value.is_empty())
         .map(PathBuf::from)
         .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".config")))?;
-    Some(base.join("hush").join("theme.kdl"))
+    Some(base.join("psst").join("theme.kdl"))
 }
 
 fn parse_hex(text: &str) -> Option<Color> {
@@ -466,7 +471,7 @@ fn set_color(parent: &KdlNode, name: &str, target: &mut Color) {
     if let Some(value) = child(parent, name).and_then(arg) {
         match value.as_string().and_then(parse_hex) {
             Some(color) => *target = color,
-            None => eprintln!("hush: theme `{name}`: expected a color like \"#1d1d1d\""),
+            None => eprintln!("psst: theme `{name}`: expected a color like \"#1d1d1d\""),
         }
     }
 }

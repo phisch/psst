@@ -43,10 +43,10 @@ jobs:
       - name: Package
         id: package
         run: |
-          name="hush-${GITHUB_REF_NAME}-x86_64-linux"
+          name="psst-${GITHUB_REF_NAME}-x86_64-linux"
           mkdir "$name"
-          cp target/release/hush-pinentry target/release/hush-keyring-prompter README.md "$name"/
-          strip "$name"/hush-pinentry "$name"/hush-keyring-prompter
+          cp target/release/psst-pinentry target/release/psst-keyring-prompter README.md "$name"/
+          strip "$name"/psst-pinentry "$name"/psst-keyring-prompter
           tar -czf "$name.tar.gz" "$name"
           sha256sum "$name.tar.gz" > "$name.tar.gz.sha256"
           echo "archive=$name.tar.gz" >> "$GITHUB_OUTPUT"

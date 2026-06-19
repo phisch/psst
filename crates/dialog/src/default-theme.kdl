@@ -1,4 +1,4 @@
-// hush theme - copy to $XDG_CONFIG_HOME/hush/theme.kdl
+// psst theme - copy to $XDG_CONFIG_HOME/psst/theme.kdl
 //
 // Every node is optional, whatever you omit keeps the default shown here.
 //
@@ -12,27 +12,27 @@
 // Fonts are a family name `"Inter"` or `"monospace"` / `"default"`.
 
 Backdrop {
-    color "#000000cc"
+    color "#000000A0"
 
     Window {
         layout {
-            width 430
+            width 530
             spacing 20
             padding { x 28; y 26 }
         }
         background "#121212"
         border { color "#212121"; size 2 }
         radius 16
-        shadow { color "#00000099"; blur 56; offset 18 }
+        shadow { color "#00000080"; blur 40; offset 12 }
 
         TitleIcon {
             // svg ##"<svg ...>"##
             layout {
-                size 22
+                size 24
                 padding 10
             }
-            color "#bdcffa"
-            background "#5900ff66"
+            color "#dbcbff"
+            background "#4d00ff50"
             border { color "#00000000"; size 0 }
             radius 8
         }
@@ -59,9 +59,9 @@ Backdrop {
                 padding { x 12; y 8 }
             }
             color "#eb7578"
-            background "#eb75781a"
+            background "#b01d3606"
             border { color "#00000000"; size 0 }
-            radius 8
+            radius 6
         }
 
         Field {
@@ -74,14 +74,14 @@ Backdrop {
             selection "#59001a59"
             background "#0f0f0f"
             border { color "#272727"; size 1 }
-            radius 9
+            radius 8
             :focus {
                 color "#f0f0f2"
                 placeholder "#6b6e78"
                 selection "#59001a59"
                 background "#1d1d1d"
                 border { color "#272727"; size 1 }
-                radius 9
+                radius 8
             }
 
             Reveal {
@@ -126,13 +126,13 @@ Backdrop {
                 font { family "default"; size 13 }
                 padding { x 18; y 9 }
             }
-            color "#d6e3ff"
-            background "#5900ff66"
+            color "#ffffff80"
+            background "#4d00ff50"
             border { color "#00000000"; size 0 }
             radius 6
             :hover {
-                color "#d6e3ff"
-                background "#5900ff99"
+                color "#ffffff80"
+                background "#4d00ff90"
                 border { color "#00000000"; size 0 }
                 radius 6
             }
@@ -144,14 +144,14 @@ Backdrop {
                 padding { x 12; y 9 }
             }
             color "#8f8f8f"
-            background "#00000000"
+            background "#ffffff02"
             border { color "#00000000"; size 0 }
             radius 8
             :hover {
                 color "#8f8f8f"
-                background "#1f1f1f"
+                background "#ffffff03"
                 border { color "#00000000"; size 0 }
-                radius 8
+                radius 6
             }
         }
 

@@ -86,7 +86,7 @@ impl Service {
         };
         if !authorized(connection, &key.0).await {
             eprintln!(
-                "hush-keyring: refusing prompt from unauthorized caller {}",
+                "psst-keyring: refusing prompt from unauthorized caller {}",
                 key.0
             );
             return Ok(());
@@ -260,7 +260,7 @@ pub(crate) async fn watch_callers(connection: Connection, shared: Arc<Shared>) {
 }
 
 async fn authorized(connection: &Connection, sender: &str) -> bool {
-    if std::env::var_os("HUSH_ALLOW_ANY_CALLER").is_some() {
+    if std::env::var_os("PSST_ALLOW_ANY_CALLER").is_some() {
         return true;
     }
     let Ok(bus_name) = BusName::try_from(sender) else {
@@ -348,7 +348,7 @@ async fn prompt_ready(
         )
         .await
     {
-        eprintln!("hush-keyring: PromptReady call failed: {error}");
+        eprintln!("psst-keyring: PromptReady call failed: {error}");
     }
 }
 
@@ -364,7 +364,7 @@ async fn prompt_done(connection: &Connection, key: &SessionKey) {
         )
         .await
     {
-        eprintln!("hush-keyring: PromptDone call failed: {error}");
+        eprintln!("psst-keyring: PromptDone call failed: {error}");
     }
 }
 

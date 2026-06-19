@@ -3,7 +3,7 @@
 //! The gcr/D-Bus machinery in this crate knows nothing about how a prompt is
 //! actually shown — it hands a [`PromptRequest`] to a [`Prompter`] and gets a
 //! [`PromptResponse`] back. The binary supplies the implementation (in our
-//! case, by spawning the `hush` dialog), so this crate stays free of any UI
+//! case, by spawning the `psst` dialog), so this crate stays free of any UI
 //! or pinentry dependency.
 
 use std::sync::atomic::{AtomicBool, Ordering};
