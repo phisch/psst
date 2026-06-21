@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/pinentry",
     "crates/keyring-prompter",
+    "crates/polkit-agent",
     "crates/ui",
     "crates/theme",
     "crates/hardening",

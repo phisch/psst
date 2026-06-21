@@ -10,6 +10,7 @@ Psst provides:
 
 - **`psst-pinentry`**: the dialog GnuPG uses to ask for your key passphrase or smartcard PIN (a *pinentry* program for `gpg-agent`).
 - **`psst-keyring-prompter`**: the dialog that unlocks your GNOME keyring, replacing the default gnome keyring prompt.
+- **`psst-polkit-agent`**: a polkit authentication agent, for the "authentication required" prompts when an app needs elevated privileges (password or a hardware-key touch, whatever your PAM stack asks for).
 
 ## Setup
 
@@ -54,6 +55,16 @@ It takes over keyring unlock prompts for as long as it's running.
   <img src="assets/unlock_keyring.png" alt="psst unlocking the GNOME keyring" width="480">
   <img src="assets/new_keyring.png" alt="psst creating a new keyring" width="480">
 </p>
+
+### polkit
+
+To handle "authentication required" prompts, run the agent from your compositor's autostart:
+
+```sh
+psst-polkit-agent
+```
+
+It registers as the authentication agent for your session and stays running. The prompt follows your polkit PAM stack (`/etc/pam.d/polkit-1`): it asks for a password, or just waits for a hardware-key touch, depending on how authentication is configured.
 
 ## Theming
 

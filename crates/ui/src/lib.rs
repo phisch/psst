@@ -18,6 +18,10 @@ use iced_layershell::to_layer_message;
 
 use theme::theme;
 
+mod conversation;
+
+pub use conversation::{run_conversation, Reply, Update};
+
 const FADE_IN: f32 = 0.18;
 
 pub const MAX_LIFETIME: Duration = Duration::from_secs(120);
