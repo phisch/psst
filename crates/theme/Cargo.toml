@@ -6,4 +6,4 @@ license.workspace = true
 
 [dependencies]
 gpui = { package = "gpui-ce", version = "0.3.3" }
-kdl = "=6.3.4"   # 6.7+ requires rustc 1.95
+kdl = "=6.3.4"

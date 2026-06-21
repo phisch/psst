@@ -21,7 +21,5 @@ rand = "0.8"
 zeroize = "1"
 serde_json = "1"
 futures-util = "0.3"
-# async-io executor, not tokio: gpui's ashpd runs zbus on a non-tokio thread and
-# Cargo unifies features workspace-wide, so enabling `tokio` here makes it panic.
 zbus = { version = "5" }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync"] }
