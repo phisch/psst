@@ -1,168 +1,116 @@
-// psst theme - copy to $XDG_CONFIG_HOME/psst/theme.kdl
-//
-// Every node is optional, whatever you omit keeps the default shown here.
-//
-// layout { ... } values cannot be changed per interaction state, so they are
-// once per element root, so `:focus`, `:hover`, or `:checked` blocks have
-// exactly the same properties (excluding `layout`) as its element.
-//
-// Colors are "#rgb" / "#rgba" / "#rrggbb" / "#rrggbbaa".
-// Fonts are a family name `"Inter"` or `"monospace"` / `"default"`.
+backdrop {
+    background "#00000060"
+}
 
-Backdrop {
-    color "#000000A0"
+window {
+    background "#121212"
+    border "#212121"
+    border-width 2
+    radius 16
+    padding { x 28; y 26 }
+    gap 20
+    shadow { color "#00000090"; blur 25; spread 10; offset-x 0; offset-y 15 }
 
-    Window {
-        layout {
-            width 530
-            spacing 20
-            padding { x 28; y 26 }
-        }
-        background "#121212"
-        border { color "#212121"; size 2 }
-        radius 16
-        shadow { color "#00000080"; blur 40; offset 12 }
+    text "#f0f0f2"
 
-        TitleIcon {
-            // svg ##"<svg ...>"##
-            layout {
-                size 24
-                padding 10
-            }
-            color "#dbcbff"
-            background "#4d00ff50"
-            border { color "#00000000"; size 0 }
-            radius 8
-        }
+    title {
+        font "Inter"
+        size 24
+    }
 
-        Title {
-            layout { font { family "Inter"; size 24 } }
-            color "#f0f0f2"
-        }
+    icon {
+        background "#470aff70"
+        text "#efe8ff"
+        radius 8
+        size 24
+        padding { x 10; y 10 }
+    }
 
-        Description {
-            Label {
-                layout { font { family "default"; size 13 } }
-                color "#737580"
-            }
-            Value {
-                layout { font { family "monospace"; size 13 } }
-                color "#9ea1ab"
-            }
-        }
+    description-label {
+        text "#737580"
+        size 13
+    }
 
-        Error {
-            layout {
-                font { family "default"; size 13 }
-                padding { x 12; y 8 }
-            }
-            color "#eb7578"
-            background "#b01d3606"
-            border { color "#00000000"; size 0 }
-            radius 6
-        }
+    description-value {
+        text "#9ea1ab"
+        font "monospace"
+        size 13
+    }
 
-        Field {
-            layout {
-                font { family "monospace"; size 15 }
-                padding { x 13; y 11 }
-            }
-            color "#f0f0f2"
-            placeholder "#6b6e78"
-            selection "#59001a59"
-            background "#0f0f0f"
-            border { color "#272727"; size 1 }
-            radius 8
-            :focus {
-                color "#f0f0f2"
-                placeholder "#6b6e78"
-                selection "#59001a59"
-                background "#1d1d1d"
-                border { color "#272727"; size 1 }
-                radius 8
-            }
+    error {
+        text "#eb7578"
+        background "#b01d3620"
+        radius 6
+        size 13
+        padding { x 12; y 8 }
+    }
 
-            Reveal {
-                // eye ##"<svg ...>"##
-                // eye-off ##"<svg ...>"##
-                layout { size 20 }
-                color "#999ca8"
-            }
-            Strength {
-                layout { height 6 }
-                track "#222222"
-                weak "#e5484d"
-                medium "#e6b340"
-                strong "#5cc86b"
-                border { color "#00000000"; size 0 }
-                radius 3
-            }
-        }
+    field {
+        background "#0f0f0f"
+        placeholder "#6b6e78"
+        selection "#ffffff60"
+        border "#272727"
+        border-width 2
+        radius 8
+        font "monospace"
+        size 15
+        padding { x 13; y 11 }
+        focus { border "#ffffff10"; background "#1d1d1d" }
+    }
 
-        Checkbox {
-            layout {
-                font { family "default"; size 13 }
-                box 16
-                spacing 10
-            }
-            color "#9ea1ab66"
-            check "#ffffff"
-            background "#0f0f0f"
-            border { color "#272727"; size 1 }
-            radius 4
-            :checked {
-                color "#9ea1ab"
-                check "#ffffff"
-                background "#0f0f0f"
-                border { color "#272727"; size 1 }
-                radius 4
-            }
-        }
+    reveal {
+        text "#808080"
+        size 20
+    }
 
-        Confirm {
-            layout {
-                font { family "default"; size 13 }
-                padding { x 18; y 9 }
-            }
-            color "#ffffff80"
-            background "#4d00ff50"
-            border { color "#00000000"; size 0 }
-            radius 6
-            :hover {
-                color "#ffffff80"
-                background "#4d00ff90"
-                border { color "#00000000"; size 0 }
-                radius 6
-            }
-        }
+    strength {
+        background "#272727"
+        radius 3
+        size 6
+    }
+    strength-weak { background "#e5484d" }
+    strength-medium { background "#e6b340" }
+    strength-strong { background "#5cc86b" }
 
-        Cancel {
-            layout {
-                font { family "default"; size 13 }
-                padding { x 12; y 9 }
-            }
-            color "#8f8f8f"
-            background "#ffffff02"
-            border { color "#00000000"; size 0 }
-            radius 8
-            :hover {
-                color "#8f8f8f"
-                background "#ffffff03"
-                border { color "#00000000"; size 0 }
-                radius 6
-            }
-        }
+    checkbox {
+        background "#0f0f0f"
+        text "#9ea1ab"
+        border "#272727"
+        border-width 1
+        radius 4
+        size 16
+        focus { border "#4d00ff" }
+        checked { text "#f0f0f2"; border "#424242" }
+    }
 
-        Hint {
-            layout { spacing 6 }
-            Key {
-                layout { font { family "monospace"; size 12 } }
-                color "#a5a5a5"
-            }
-            Word {
-                layout { font { family "default"; size 12 } }
-                color "#393939"
-            }
-        }
+    confirm {
+        background "#470aff70"
+        text "#efe8ff"
+        radius 6
+        size 13
+        padding { x 18; y 9 }
+        hover { background "#470affb0" }
+        active { background "#470aff95" }
+    }
+
+    cancel {
+        background "#ffffff05"
+        text "#8f8f8f"
+        radius 6
+        size 13
+        padding { x 12; y 9 }
+        hover { background "#ffffff12" }
+        active { background "#ffffff09" }
+    }
+
+    hint-key {
+        text "#a5a5a5"
+        font "monospace"
+        size 12
+    }
+
+    hint-word {
+        text "#343434"
+        size 12
     }
 }
