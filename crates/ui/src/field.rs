@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 
 use gpui::{
     canvas, div, fill, point, prelude::*, px, size, App, Bounds, Context, CursorStyle,
-    DispatchPhase, Entity, EventEmitter, FocusHandle, Font, KeyDownEvent, MouseButton,
+    DispatchPhase, Entity, EventEmitter, FocusHandle, KeyDownEvent, MouseButton,
     MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, ShapedLine, SharedString, TextRun,
     Window,
 };
@@ -275,9 +275,13 @@ fn draw(field: &Entity<Field>, bounds: Bounds<Pixels>, window: &mut Window, cx: 
         (f.display().into(), t.text)
     };
 
+    let font = match &t.font {
+        theme::FontFamily::Default => window.text_style().font(),
+        theme::FontFamily::Named(name) => crate::style::font_family(name),
+    };
     let run = TextRun {
         len: text.len(),
-        font: field_font(window, &t.font),
+        font,
         color,
         background_color: None,
         underline: None,
@@ -377,16 +381,6 @@ fn sticky_scroll(prev: Pixels, caret: Pixels, content: Pixels, width: Pixels) ->
         prev
     };
     scroll.clamp(px(0.), (content - width + margin).max(px(0.)))
-}
-
-fn field_font(window: &Window, family: &theme::FontFamily) -> Font {
-    let mut font = window.text_style().font();
-    match family {
-        theme::FontFamily::Default => {}
-        theme::FontFamily::Monospace => font.family = "monospace".into(),
-        theme::FontFamily::Named(name) => font.family = name.clone().into(),
-    }
-    font
 }
 
 fn prev_boundary(s: &str, i: usize) -> usize {

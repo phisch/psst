@@ -1,5 +1,14 @@
-use gpui::{point, prelude::*, px, BoxShadow, Div, StyleRefinement};
+use gpui::{font, point, prelude::*, px, BoxShadow, Div, Font, FontFallbacks, StyleRefinement};
 use theme::Style;
+
+pub(crate) fn font_family(name: &str) -> Font {
+    let mut names = name.split(',').map(str::trim).filter(|n| !n.is_empty());
+    let mut font = font(names.next().unwrap_or(name).to_owned());
+    font.fallbacks = Some(FontFallbacks::from_fonts(
+        names.map(str::to_owned).collect(),
+    ));
+    font
+}
 
 pub(crate) fn apply(d: Div, s: &Style) -> Div {
     let d = match s.border_width.round() as i32 {
@@ -19,8 +28,7 @@ pub(crate) fn apply(d: Div, s: &Style) -> Div {
         .text_color(s.text);
     d = match &s.font {
         theme::FontFamily::Default => d,
-        theme::FontFamily::Monospace => d.font_family("monospace"),
-        theme::FontFamily::Named(name) => d.font_family(name.clone()),
+        theme::FontFamily::Named(name) => d.font(font_family(name)),
     };
     if let Some(shadow) = &s.shadow {
         d = d.shadow(vec![BoxShadow {

@@ -13,7 +13,6 @@ const EYE_OFF_SVG: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" height="20
 #[derive(Clone, Debug, PartialEq)]
 pub enum FontFamily {
     Default,
-    Monospace,
     Named(String),
 }
 
@@ -340,10 +339,9 @@ fn set_num(parent: &KdlNode, name: &str, target: &mut f32) {
 }
 
 fn parse_font(name: &str) -> FontFamily {
-    match name.trim().to_ascii_lowercase().as_str() {
-        "monospace" | "mono" => FontFamily::Monospace,
-        "" | "default" | "sans" | "sans-serif" => FontFamily::Default,
-        _ => FontFamily::Named(name.trim().to_string()),
+    match name.trim() {
+        "" | "default" => FontFamily::Default,
+        name => FontFamily::Named(name.to_string()),
     }
 }
 

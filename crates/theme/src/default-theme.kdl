@@ -14,7 +14,6 @@ window {
     text "#f0f0f2"
 
     title {
-        font "Inter"
         size 24
     }
 
@@ -33,7 +32,6 @@ window {
 
     description-value {
         text "#9ea1ab"
-        font "monospace"
         size 13
     }
 
@@ -52,7 +50,7 @@ window {
         border "#272727"
         border-width 2
         radius 8
-        font "monospace"
+        font "DejaVu Sans Mono, Liberation Mono, Noto Sans Mono"
         size 15
         padding { x 13; y 11 }
         focus { border "#ffffff10"; background "#1d1d1d" }
@@ -105,7 +103,6 @@ window {
 
     hint-key {
         text "#a5a5a5"
-        font "monospace"
         size 12
     }
 
