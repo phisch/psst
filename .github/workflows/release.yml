@@ -22,6 +22,7 @@ jobs:
             pkg-config \
             libwayland-dev \
             libxkbcommon-dev \
+            libxkbcommon-x11-dev \
             libfontconfig1-dev \
             libsystemd-dev
 
