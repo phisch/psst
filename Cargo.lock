@@ -2318,7 +2318,7 @@ dependencies = [
 
 [[package]]
 name = "hardening"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "libc",
 ]
@@ -2804,7 +2804,7 @@ dependencies = [
 
 [[package]]
 name = "keyring-prompter"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "aes",
  "base64",
@@ -3754,7 +3754,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
 name = "pinentry"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "hardening",
  "ui",
@@ -3806,7 +3806,7 @@ dependencies = [
 
 [[package]]
 name = "polkit-agent"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "hardening",
  "serde_json",
@@ -5311,7 +5311,7 @@ dependencies = [
 
 [[package]]
 name = "theme"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "gpui-ce",
  "kdl",
@@ -5696,7 +5696,7 @@ dependencies = [
 
 [[package]]
 name = "ui"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "gpui-ce",
  "serde",
