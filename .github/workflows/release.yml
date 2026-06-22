@@ -42,12 +42,17 @@ jobs:
       - name: Build release binaries
         run: cargo build --release --locked
 
+      - name: Generate third-party licenses
+        run: |
+          cargo install cargo-about --locked --features cli
+          cargo about generate about.hbs > THIRD-PARTY-LICENSES.html
+
       - name: Package
         id: package
         run: |
           name="psst-${GITHUB_REF_NAME}-x86_64-linux"
           mkdir "$name"
-          cp target/release/psst-pinentry target/release/psst-keyring-prompter target/release/psst-polkit-agent README.md LICENSE LICENSE-GPL-3.0 "$name"/
+          cp target/release/psst-pinentry target/release/psst-keyring-prompter target/release/psst-polkit-agent README.md LICENSE LICENSE-GPL-3.0 THIRD-PARTY-LICENSES.html "$name"/
           strip "$name"/psst-pinentry "$name"/psst-keyring-prompter "$name"/psst-polkit-agent
           tar -czf "$name.tar.gz" "$name"
           sha256sum "$name.tar.gz" > "$name.tar.gz.sha256"
