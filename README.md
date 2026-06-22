@@ -2,9 +2,7 @@
 
 A not-so-ugly replacement for your pinentry and keyring prompter for wayland using a layer-shell overlay.
 
-<p align="center">
-  <img src="assets/demo.png" alt="psst asking for a new keyring password" width="520">
-</p>
+<img src="screenshots/demo.png" alt="psst ui demonstration">
 
 Psst provides:
 
@@ -30,10 +28,7 @@ Update your `gpg-agent` configuration to use `psst-pinentry` as your pinentry pr
 ```sh
 pinentry-program /path/to/psst/target/release/psst-pinentry
 ```
-
-<p align="center">
-  <img src="assets/gnupg.png" alt="psst-pinentry unlocking a smartcard key" width="480">
-</p>
+<img src="screenshots/pinentry.png" alt="psst-pinentry unlocking a smartcard key">
 
 ### GNOME Keyring
 
@@ -51,10 +46,8 @@ gpg-connect-agent reloadagent /bye
 
 It takes over keyring unlock prompts for as long as it's running.
 
-<p align="center">
-  <img src="assets/unlock_keyring.png" alt="psst unlocking the GNOME keyring" width="480">
-  <img src="assets/new_keyring.png" alt="psst creating a new keyring" width="480">
-</p>
+<img src="screenshots/keyring-prompter_unlock.png" alt="psst unlocking a keyring">
+<img src="screenshots/keyring-prompter_new.png" alt="psst creating a new keyring">
 
 ### polkit
 
@@ -66,12 +59,13 @@ psst-polkit-agent
 
 It registers as the authentication agent for your session and stays running. The prompt follows your polkit PAM stack (`/etc/pam.d/polkit-1`): it asks for a password, or just waits for a hardware-key touch, depending on how authentication is configured.
 
+<img src="screenshots/polkit-agent.png" alt="psst-polkit-agent asking for sudo">
+
 ## Theming
 
 Every color, font, size, border, and radius is themeable through a [KDL](https://kdl.dev) file at `~/.config/psst/theme.kdl` (or `$XDG_CONFIG_HOME/psst/theme.kdl`). Anything you omit keeps its default, and an invalid theme is ignored with a warning rather than blocking a prompt.
 
-The [`default-theme.kdl`](crates/theme/src/default-theme.kdl) file lists every available
-option at its default value, copy it to `~/.config/psst/theme.kdl` and edit to taste.
+The [`default-theme.kdl`](crates/theme/src/default-theme.kdl) file is the default theme implementation, copy it to `~/.config/psst/theme.kdl` (or overwrite specific values in a new file) and edit to taste.
 
 ## License
 
