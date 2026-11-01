@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 
 use tokio::sync::Semaphore;
 use zbus::message::Header;
-use zbus::names::BusName;
+use zbus::names::{BusName, WellKnownName};
 use zbus::zvariant::{OwnedObjectPath, OwnedValue, Value};
 use zbus::Connection;
 
@@ -11,6 +11,9 @@ use crate::prompt::{Cancel, PromptKind, PromptRequest, PromptResponse, Prompter 
 use crate::secret_exchange::SecretExchange;
 
 const CALLBACK_INTERFACE: &str = "org.gnome.keyring.internal.Prompter.Callback";
+const SECRETS_BUS_NAME: BusName<'static> = BusName::WellKnown(
+    WellKnownName::from_static_str_unchecked("org.freedesktop.secrets"),
+);
 
 type SessionKey = (String, String);
 
@@ -263,21 +266,13 @@ async fn authorized(connection: &Connection, sender: &str) -> bool {
     if std::env::var_os("PSST_ALLOW_ANY_CALLER").is_some() {
         return true;
     }
-    let Ok(bus_name) = BusName::try_from(sender) else {
-        return false;
-    };
     let Ok(proxy) = zbus::fdo::DBusProxy::new(connection).await else {
         return false;
     };
-    let Ok(pid) = proxy.get_connection_unix_process_id(bus_name).await else {
+    let Ok(owner) = proxy.get_name_owner(SECRETS_BUS_NAME).await else {
         return false;
     };
-    match std::fs::read_link(format!("/proc/{pid}/exe")) {
-        Ok(path) => path
-            .file_name()
-            .is_some_and(|name| name == "gnome-keyring-daemon"),
-        Err(_) => false,
-    }
+    owner.as_str() == sender
 }
 
 fn session_key(header: &Header<'_>, callback: &OwnedObjectPath) -> Option<SessionKey> {
